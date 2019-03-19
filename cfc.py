@@ -145,6 +145,7 @@ class PyFile(object):
         self.reset()
         
     def __new__(cls, filename):
+        assert TMP_DIR is not None, 'you need to set the tmp dir before creating PyFile'
         if filename in cls.database:
             raise Exception('One file can be only instantiated once.')
         instance = object.__new__(cls)
@@ -200,22 +201,29 @@ class PyFile(object):
     @_flush_deco
     def comment(self, line):
         ite = range(line[0],line[1]+1) if isinstance(line, (list,tuple)) else [line]
-        for line in ite:
-            indent = self._find_indent(line)
+        for i,line in enumerate(ite):
+            if i == 0:
+                indent = self._find_indent(line)
             s = self.cur_lines[line][1]
-            s1 = s.lstrip()
-            if s1[0] != '#':
+            if i == 0:
+                s1 = s.lstrip()
+            else:
+                s1 = s[len(indent):]
+            if len(s1)>0 and s1[0] != '#':
                 self.cur_lines[line][1] = indent+'# '+s1
 
     @_flush_deco
     def uncomment(self, line):
         ite = range(line[0],line[1]+1) if isinstance(line, (list,tuple)) else [line]
-        for line in ite:
-            indent = self._find_indent(line)
+        for i,line in enumerate(ite):
+            if i == 0:
+                indent = self._find_indent(line)
             s = self.cur_lines[line][1]
             s1 = s.lstrip()
-            if s1[0] == '#':
-                self.cur_lines[line][1] = indent+s1[1:].lstrip()
+            if i == 0:
+                beg_ix = len(s1[1:]) - len(s1[1:].lstrip())
+            if len(s1)>0 and s1[0] == '#':
+                self.cur_lines[line][1] = indent+s1[1:][beg_ix:]
 
 
     def iter_replace(self, line, code, vals):
